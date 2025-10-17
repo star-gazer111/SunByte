@@ -50,6 +50,47 @@ app.post('/wallet/create', async (req, res) => {
 });
 
 
+app.post('/wallet/pvt_key/retrieve', async (req, res) => {
+  console.log('Received request to /wallet/pvt_key/retrieve');
+  try {
+      const { address, password } = req.body;
+
+      if (!address || !ethers.isAddress(address)) {
+          return res.status(400).json({ error: 'A valid wallet address is required.' });
+      }
+
+      if (!password || password.length < 8) {
+          return res.status(400).json({ error: 'Password is required (min 8 characters).' });
+      }
+
+      const filePath = path.join(KEYSTORE_DIR, `${address}.json`);
+      if (!fs.existsSync(filePath)) {
+          return res.status(404).json({ error: `Wallet for address ${address} not found.` });
+      }
+
+      try {
+          const encryptedJson = fs.readFileSync(filePath, 'utf8');
+          const wallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, password);
+
+          console.log(`Private key retrieved for wallet: ${wallet.address}`);
+          return res.status(200).json({
+              message: 'Private key retrieved successfully!',
+              address: wallet.address,
+              privateKey: wallet.privateKey
+          });
+
+      } catch (err) {
+          return res.status(401).json({ error: 'Invalid password.' });
+      }
+
+  } catch (error) {
+      console.error('Error retrieving wallet private key:', error);
+      res.status(500).json({ error: 'An internal server error occurred.' });
+  }
+});
+
+
+
 app.post('/wallet/import-mnemonic', async (req, res) => {
   console.log('Received request to /wallet/import-mnemonic');
   try {
