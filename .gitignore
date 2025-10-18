@@ -17,6 +17,7 @@ logs/
 *.log
 
 
+
 .DS_Store
 Thumbs.db
 .idea/
@@ -28,6 +29,7 @@ dist/
 build/
 .cache/
 tmp/
-out/
 coverage/
+.output/
+
 
