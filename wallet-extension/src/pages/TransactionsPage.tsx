@@ -1,15 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 
-interface Transaction {
-  id: number;
-  type: string;
-  token: string;
-  amount: string;
-  value: string;
-  from: string;
-  time: string;
-  color: string;
-}
+import { Transaction } from '../types/transaction';
 
 interface TransactionsPageProps {
   setCurrentPage: (page: string) => void;

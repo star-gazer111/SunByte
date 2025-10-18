@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft, Repeat, ShoppingCart, TrendingUp, LogOut, ChevronDown, X } from 'lucide-react';
 import { 
   TransactionsPage,
@@ -8,7 +8,8 @@ import {
   ReceivePage, 
   EarnPage 
 } from '../pages';
-import SunBiteIcon from '../assets/sunbite.svg';
+import SunByteIcon from '../assets/SunByte.svg';
+
 
 interface Asset {
   name: string;
@@ -21,9 +22,35 @@ interface Asset {
   tokenIcon?: string;
 }
 
-const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction }: any) => {
+
+const SunByteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction }: any) => {
   const [currentPage, setCurrentPage] = useState('home');
   const [showAssetsSheet, setShowAssetsSheet] = useState(false);
+
+  // Prevent body scroll when bottom sheet is open
+  useEffect(() => {
+    if (showAssetsSheet) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [showAssetsSheet]);
 
   const assets: Asset[] = [
     { name: 'Ethereum', symbol: 'ETH', amount: '0.85', value: '1,234.50', chain: 'Ethereum', chainIcon: '⟠', chainColor: 'bg-blue-500', tokenIcon: 'Ξ' },
@@ -33,6 +60,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
     { name: 'Wrapped BTC', symbol: 'WBTC', amount: '0.02', value: '890.50', chain: 'Polygon', chainIcon: '⬡', chainColor: 'bg-purple-500', tokenIcon: '₿' },
     { name: 'DAI', symbol: 'DAI', amount: '850', value: '850.00', chain: 'Arbitrum', chainIcon: '◆', chainColor: 'bg-cyan-500', tokenIcon: '◈' },
   ];
+
 
   const quickActions = [
     { 
@@ -67,11 +95,14 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
     }
   ];
 
+
   const recentTransactions = [
     { id: 1, type: 'Received', token: 'ETH', amount: '0.5', value: '1,234.50', from: '0x1a2b...3c4d', time: '2h ago', color: 'text-green-500' },
     { id: 2, type: 'Sent', token: 'MATIC', amount: '150', value: '245.00', to: '0x5e6f...7g8h', time: '1d ago', color: 'text-orange-500' },
-    { id: 3, type: 'Swap', token: 'ARB → ETH', amount: '500', value: '650.00', time: '3d ago', color: 'text-blue-500' }
+    { id: 3, type: 'Swap', token: 'ARB → ETH', amount: '500', value: '650.00', time: '3d ago', color: 'text-blue-500' },
+    { id: 4, type: 'Received', token: 'ETH', amount: '0.5', value: '1,234.50', from: '0x1a2b...3c4d', time: '2h ago', color: 'text-green-500' },
   ];
+
 
   // Get unique chains with their details
   const uniqueChains = assets
@@ -83,6 +114,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
       chainIcon: asset.chainIcon,
       chainColor: asset.chainColor
     }));
+
 
   // Route to the appropriate page component
   switch (currentPage) {
@@ -102,6 +134,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
       break;
   }
 
+
   // Home Page
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
@@ -111,8 +144,8 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
               <img 
-                src={SunBiteIcon} 
-                alt="SunBite" 
+                src={SunByteIcon} 
+                alt="SunByte" 
                 className="w-12 h-12" 
               />
             </div>
@@ -129,12 +162,14 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
             </div>
           </div>
 
+
           {/* Total Balance */}
           <div className="text-center mb-4">
             <p className="text-orange-100 text-xs mb-1">Total Assets</p>
             <h2 className="text-4xl font-light tracking-tight mb-1">${balance || '2,458.32'}</h2>
             <p className="text-green-300 text-xs">+3.25% today</p>
           </div>
+
 
           {/* Asset Chain Selector - Styled like the image */}
           <div className="flex items-center justify-center mt-6">
@@ -167,6 +202,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
           </div>
         </div>
 
+
         {/* Quick Actions */}
         <div className="px-4 -mt-14 mb-4">
           <div className="bg-white rounded-xl shadow-xl p-4">
@@ -186,6 +222,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
             </div>
           </div>
         </div>
+
 
         {/* Recent Transactions */}
         <div className="px-4 pb-6">
@@ -230,6 +267,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
           </div>
         </div>
 
+
         {/* iOS-style Assets Bottom Sheet */}
         {showAssetsSheet && (
           <>
@@ -257,6 +295,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
+
 
                 {/* Assets List */}
                 <div className="px-4 py-3 max-h-96 overflow-y-auto">
@@ -297,6 +336,7 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
                   ))}
                 </div>
 
+
                 {/* Safe Area Bottom Padding */}
                 <div className="h-8" />
               </div>
@@ -308,4 +348,5 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
   );
 };
 
-export default SunbiteDashboard;
+
+export default SunByteDashboard;

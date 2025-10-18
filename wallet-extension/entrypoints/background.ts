@@ -1,4 +1,4 @@
-import { defineBackground } from 'wxt/sandbox';
+import { defineBackground } from '#imports';
 
 export default defineBackground(() => {
   // This is a basic background script for your extension

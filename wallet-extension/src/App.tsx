@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import { walletService } from './api/walletService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { WalletData, ChromeStorageData } from './types/wallet';
+import { WelcomeScreen } from './components/WelcomeScreen';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -13,6 +15,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [walletDetails, setWalletDetails] = useState<WalletData | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Store wallet data in chrome.storage
   const storeWalletAddress = useCallback((walletAddress: string) => {
@@ -113,13 +116,6 @@ const App: React.FC = () => {
         password
       });
       
-      // Create wallet data object
-      const walletData = {
-        address: wallet.address,
-        privateKey: wallet.privateKey
-        // Note: No mnemonic when importing by private key
-      };
-      
       // Store the wallet data
       storeWalletAddress(wallet.address);
       
@@ -129,46 +125,10 @@ const App: React.FC = () => {
       updateLoginState(true);
       
       toast.success('Wallet imported successfully!');
+      return {address: wallet.address,privateKey: wallet.privateKey};
     } catch (error) {
       console.error('Error importing wallet:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to import wallet';
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = async (password: string) => {
-    try {
-      setIsLoading(true);
-      
-      // Get the stored wallet data
-      const result = await new Promise<ChromeStorageData>((resolve) => {
-        chrome.storage.local.get(['walletAddress'], (data) => {
-          resolve(data as ChromeStorageData);
-        });
-      });
-
-      if (!result.walletAddress) {
-        throw new Error('No wallet found. Please create a new wallet.');
-      }
-
-     
-      setWalletAddress(result.walletAddress);
-      updateLoginState(true);
-      
-      try {
-        const balanceData = await walletService.getBalance(result.walletAddress);
-        setBalance(balanceData.balance || '0.00');
-        toast.success('Successfully logged in!');
-      } catch (error) {
-        console.error('Error fetching balance:', error);
-        toast.error('Failed to fetch wallet balance');
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       toast.error(errorMessage);
       throw error;
     } finally {
@@ -248,8 +208,12 @@ const App: React.FC = () => {
     );
   }
 
+  const handleWelcomeComplete = () => {
+    setShowWelcome(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -263,22 +227,40 @@ const App: React.FC = () => {
         theme="dark"
       />
       
-      {isLoggedIn ? (
-        <Dashboard
-          walletAddress={walletAddress}
-          balance={balance}
-          onLogout={handleLogout}
-          onSendTransaction={handleSendTransaction}
-        />
-      ) : (
-        <LoginForm 
-          onLogin = {handleLogin}
-          onCreateWallet={handleCreateWallet}
-          onBackupComplete={handleBackupComplete}
-          setWalletDetails={setWalletDetails}
-          isCreatingWallet={isCreatingWallet}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {showWelcome ? (
+          <WelcomeScreen onComplete={handleWelcomeComplete} />
+        ) : isLoggedIn ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Dashboard
+              walletAddress={walletAddress}
+              balance={balance}
+              onLogout={handleLogout}
+              onSendTransaction={handleSendTransaction}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+          >
+            <LoginForm 
+              onCreateWallet={handleCreateWallet}
+              onBackupComplete={handleBackupComplete}
+              setWalletDetails={setWalletDetails}
+              isCreatingWallet={isCreatingWallet} 
+              onImportWallet={handleImportWallet}       
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
