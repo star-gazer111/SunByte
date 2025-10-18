@@ -7,8 +7,12 @@ import {
   ReceivePage, 
   EarnPage 
 } from '../pages';
+<<<<<<< Updated upstream
 import SunByteIcon from '../assets/SunByte.svg';
 
+=======
+import SunBiteIcon from '../assets/SunBite.svg';
+>>>>>>> Stashed changes
 
 interface Asset {
   name: string;
