@@ -3,7 +3,6 @@ import { ArrowUpRight, ArrowDownLeft, Repeat, ShoppingCart, TrendingUp, LogOut, 
 import { 
   TransactionsPage,
   BuyPage, 
-  SwapPage, 
   SendPage, 
   ReceivePage, 
   EarnPage 
@@ -70,12 +69,6 @@ const SunByteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
       onClick: () => setCurrentPage('buy')
     },
     { 
-      name: 'Swap', 
-      icon: Repeat, 
-      gradient: 'from-orange-500 to-amber-600',
-      onClick: () => setCurrentPage('swap')
-    },
-    { 
       name: 'Send', 
       icon: ArrowUpRight, 
       gradient: 'from-amber-500 to-orange-500',
@@ -122,8 +115,6 @@ const SunByteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
       return <TransactionsPage setCurrentPage={setCurrentPage} transactions={recentTransactions} />;
     case 'buy':
       return <BuyPage setCurrentPage={setCurrentPage} />;
-    case 'swap':
-      return <SwapPage setCurrentPage={setCurrentPage} />;
     case 'send':
       return <SendPage setCurrentPage={setCurrentPage} />;
     case 'receive':

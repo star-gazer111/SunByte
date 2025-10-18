@@ -1,6 +1,5 @@
 export * from './TransactionsPage';
 export * from './BuyPage';
-export * from './SwapPage';
 export * from './SendPage';
 export * from './ReceivePage';
 export * from './EarnPage';
