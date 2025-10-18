@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Repeat, ShoppingCart, TrendingUp, ChevronRight, LogOut, ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpRight, ArrowDownLeft, Repeat, ShoppingCart, TrendingUp, LogOut, ChevronDown, X } from 'lucide-react';
 import { 
-  AssetsPage, 
+  TransactionsPage,
   BuyPage, 
   SwapPage, 
   SendPage, 
   ReceivePage, 
   EarnPage 
 } from '../pages';
+import SunBiteIcon from '../assets/sunbite.svg';
 
 interface Asset {
   name: string;
@@ -17,18 +18,20 @@ interface Asset {
   chain: string;
   chainIcon: string;
   chainColor: string;
+  tokenIcon?: string;
 }
 
 const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction }: any) => {
-  const [currentPage, setCurrentPage] = useState('home'); // home, assets, buy, swap, send, receive, earn
+  const [currentPage, setCurrentPage] = useState('home');
+  const [showAssetsSheet, setShowAssetsSheet] = useState(false);
 
-  // Sample asset data with chains
   const assets: Asset[] = [
-    { name: 'Ethereum', symbol: 'ETH', amount: '0.85', value: '1,234.50', chain: 'Ethereum', chainIcon: '⟠', chainColor: 'bg-blue-500' },
-    { name: 'Polygon', symbol: 'MATIC', amount: '520', value: '456.82', chain: 'Polygon', chainIcon: '⬡', chainColor: 'bg-purple-500' },
-    { name: 'Arbitrum', symbol: 'ARB', amount: '650', value: '767.00', chain: 'Arbitrum', chainIcon: '◆', chainColor: 'bg-cyan-500' },
-    { name: 'USD Coin', symbol: 'USDC', amount: '1,200', value: '1,200.00', chain: 'Ethereum', chainIcon: '⟠', chainColor: 'bg-blue-500' },
-    { name: 'Wrapped BTC', symbol: 'WBTC', amount: '0.02', value: '890.50', chain: 'Polygon', chainIcon: '⬡', chainColor: 'bg-purple-500' }
+    { name: 'Ethereum', symbol: 'ETH', amount: '0.85', value: '1,234.50', chain: 'Ethereum', chainIcon: '⟠', chainColor: 'bg-blue-500', tokenIcon: 'Ξ' },
+    { name: 'Polygon', symbol: 'MATIC', amount: '520', value: '456.82', chain: 'Polygon', chainIcon: '⬡', chainColor: 'bg-purple-500', tokenIcon: '⬡' },
+    { name: 'Arbitrum', symbol: 'ARB', amount: '650', value: '767.00', chain: 'Arbitrum', chainIcon: '◆', chainColor: 'bg-cyan-500', tokenIcon: '◆' },
+    { name: 'USD Coin', symbol: 'USDC', amount: '1,200', value: '1,200.00', chain: 'Ethereum', chainIcon: '⟠', chainColor: 'bg-blue-500', tokenIcon: '$' },
+    { name: 'Wrapped BTC', symbol: 'WBTC', amount: '0.02', value: '890.50', chain: 'Polygon', chainIcon: '⬡', chainColor: 'bg-purple-500', tokenIcon: '₿' },
+    { name: 'DAI', symbol: 'DAI', amount: '850', value: '850.00', chain: 'Arbitrum', chainIcon: '◆', chainColor: 'bg-cyan-500', tokenIcon: '◈' },
   ];
 
   const quickActions = [
@@ -70,10 +73,21 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
     { id: 3, type: 'Swap', token: 'ARB → ETH', amount: '500', value: '650.00', time: '3d ago', color: 'text-blue-500' }
   ];
 
+  // Get unique chains with their details
+  const uniqueChains = assets
+    .filter((asset, index, self) => 
+      index === self.findIndex(a => a.chain === asset.chain)
+    )
+    .map(asset => ({
+      chain: asset.chain,
+      chainIcon: asset.chainIcon,
+      chainColor: asset.chainColor
+    }));
+
   // Route to the appropriate page component
   switch (currentPage) {
-    case 'assets':
-      return <AssetsPage setCurrentPage={setCurrentPage} assets={assets} />;
+    case 'transactions':
+      return <TransactionsPage setCurrentPage={setCurrentPage} transactions={recentTransactions} />;
     case 'buy':
       return <BuyPage setCurrentPage={setCurrentPage} />;
     case 'swap':
@@ -85,40 +99,71 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
     case 'earn':
       return <EarnPage setCurrentPage={setCurrentPage} />;
     default:
-      // Default to home page
       break;
   }
 
   // Home Page
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto relative">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 pt-6 pb-20 rounded-b-2xl shadow-lg">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                <span className="text-xl">☀️</span>
-              </div>
-              <div>
-                <h1 className="text-base font-bold">Sunbite</h1>
-                <p className="text-orange-100 text-xs">sunbite.wallet</p>
-              </div>
+              <img 
+                src={SunBiteIcon} 
+                alt="SunBite" 
+                className="w-12 h-12" 
+              />
             </div>
-            <button 
-              onClick={onLogout}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors group"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            
+            <div className="flex items-center space-x-2">
+              {/* Logout Button */}
+              <button 
+                onClick={onLogout}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors group"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Total Balance */}
-          <div className="text-center">
+          <div className="text-center mb-4">
             <p className="text-orange-100 text-xs mb-1">Total Assets</p>
             <h2 className="text-4xl font-light tracking-tight mb-1">${balance || '2,458.32'}</h2>
             <p className="text-green-300 text-xs">+3.25% today</p>
+          </div>
+
+          {/* Asset Chain Selector - Styled like the image */}
+          <div className="flex items-center justify-center mt-6">
+            <button
+              onClick={() => setShowAssetsSheet(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-200 backdrop-blur-sm border border-white/30"
+            >
+              {/* Chain Icons Stack */}
+              <div className="flex items-center -space-x-2">
+                {uniqueChains.map((chain, idx) => (
+                  <div 
+                    key={chain.chain} 
+                    className={`w-6 h-6 ${chain.chainColor} rounded-full flex items-center justify-center text-white text-xs border-2 border-white shadow-md transition-transform hover:scale-110`}
+                    title={chain.chain}
+                    style={{ zIndex: uniqueChains.length - idx }}
+                  >
+                    {chain.chainIcon}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Dropdown Text */}
+              <span className="text-white text-sm font-medium">
+                {uniqueChains.length} Chain{uniqueChains.length > 1 ? 's' : ''}
+              </span>
+              
+              {/* Chevron Icon */}
+              <ChevronDown className="w-4 h-4 text-white" />
+            </button>
           </div>
         </div>
 
@@ -142,32 +187,16 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
           </div>
         </div>
 
-        {/* Assets by Chain - Clickable Option */}
-        <div className="px-4 mb-4">
-          <button 
-            onClick={() => setCurrentPage('assets')}
-            className="w-full bg-white rounded-xl p-3 flex items-center justify-between shadow-sm hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center">
-                <span className="text-lg">⛓️</span>
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-gray-800 text-sm">Assets by Chain</p>
-                <p className="text-xs text-gray-500">View all your tokens</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" />
-          </button>
-        </div>
-
         {/* Recent Transactions */}
         <div className="px-4 pb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-700 font-semibold text-sm flex items-center">
-              <span className="mr-2">📊</span> Recent Activity
+            <h3 className="text-gray-700 font-semibold text-sm flex items-center ml-4">
+               Recent Activity
             </h3>
-            <button className="text-orange-500 text-xs font-medium hover:text-orange-600">
+            <button 
+              onClick={() => setCurrentPage('transactions')}
+              className="text-orange-500 text-xs font-medium hover:text-orange-600"
+            >
               View All
             </button>
           </div>
@@ -200,6 +229,80 @@ const SunbiteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
             ))}
           </div>
         </div>
+
+        {/* iOS-style Assets Bottom Sheet */}
+        {showAssetsSheet && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+              onClick={() => setShowAssetsSheet(false)}
+            />
+            
+            {/* Bottom Sheet */}
+            <div className="fixed inset-x-0 bottom-0 z-50 animate-slide-up">
+              <div className="bg-white rounded-t-3xl shadow-2xl max-w-md mx-auto">
+                {/* Handle Bar */}
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                </div>
+                
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800">All Assets</h3>
+                  <button
+                    onClick={() => setShowAssetsSheet(false)}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Assets List */}
+                <div className="px-4 py-3 max-h-96 overflow-y-auto">
+                  {assets.map((asset, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        // Handle asset selection if needed
+                        setShowAssetsSheet(false);
+                      }}
+                      className="w-full flex items-center justify-between p-4 rounded-xl mb-2 bg-gray-50 hover:bg-gray-100 transition-all"
+                    >
+                      <div className="flex items-center space-x-3">
+                        {/* Token Icon with Chain Badge */}
+                        <div className="relative">
+                          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-md">
+                            {asset.tokenIcon || asset.symbol.charAt(0)}
+                          </div>
+                          {/* Chain Badge - Top Right */}
+                          <div className={`absolute -top-1 -right-1 w-5 h-5 ${asset.chainColor} rounded-full flex items-center justify-center text-white text-xs border-2 border-white shadow-sm`}>
+                            {asset.chainIcon}
+                          </div>
+                        </div>
+                        
+                        {/* Token Info */}
+                        <div className="text-left">
+                          <p className="font-semibold text-gray-800">{asset.symbol}</p>
+                          <p className="text-xs text-gray-500">{asset.amount} {asset.symbol}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Value */}
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-800">${asset.value}</p>
+                        <p className="text-xs text-gray-500">{asset.chain}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Safe Area Bottom Padding */}
+                <div className="h-8" />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

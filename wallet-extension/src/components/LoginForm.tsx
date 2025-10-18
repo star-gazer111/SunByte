@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, Dispatch, SetStateAction } from 'react';
 import { Eye, EyeOff, Lock, KeyRound } from 'lucide-react';
 import SunBiteIcon from '../assets/SunBite.svg'
-
-interface WalletData {
-  address: string;
-  mnemonic?: string;
-  privateKey: string;
-}
+import { WalletData } from '../types/wallet';
 
 interface LoginFormProps {
   onLogin: (password: string) => Promise<void>;
   onCreateWallet: (password: string) => Promise<WalletData>;
   onBackupComplete: () => void;
-  setWalletDetails: (walletDetails: WalletData | null) => void;
+  setWalletDetails: Dispatch<SetStateAction<WalletData | null>>;
   isCreatingWallet: boolean;
 }
 

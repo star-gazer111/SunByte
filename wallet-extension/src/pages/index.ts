@@ -1,4 +1,4 @@
-export * from './AssetsPage';
+export * from './TransactionsPage';
 export * from './BuyPage';
 export * from './SwapPage';
 export * from './SendPage';

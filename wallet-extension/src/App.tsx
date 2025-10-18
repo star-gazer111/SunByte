@@ -15,17 +15,17 @@ const App: React.FC = () => {
   const [walletDetails, setWalletDetails] = useState<WalletData | null>(null);
 
   // Store wallet data in chrome.storage
-  const storeWalletData = useCallback((walletData: WalletData) => {
+  const storeWalletAddress = useCallback((walletAddress: string) => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      chrome.storage.local.set({ walletData });
+      chrome.storage.local.set({ walletAddress });
     }
   }, []);
 
-  // Clear wallet data from chrome.storage
-  const clearWalletData = useCallback(() => {
+  const updateLoginState = useCallback((isLoggedIn: boolean) => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      chrome.storage.local.remove(['walletData']);
+      chrome.storage.local.set({ isLoggedIn });
     }
+    setIsLoggedIn(isLoggedIn);
   }, []);
 
   // Check for existing session on mount
@@ -34,15 +34,16 @@ const App: React.FC = () => {
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
           const result = await new Promise<ChromeStorageData>((resolve) => {
-            chrome.storage.local.get(['walletData'], (data) => {
+            chrome.storage.local.get(['walletAddress'], (data) => {
               resolve(data);
+              setWalletAddress(data.walletAddress);
             });
           });
           
-          if (result.walletData) {
+          if (result.walletAddress) {
             setIsLoggedIn(true);
             try {
-              const balanceData = await walletService.getBalance(result.walletData.address);
+              const balanceData = await walletService.getBalance(result.walletAddress);
               setBalance(balanceData.balance || '0.00');
             } catch (error) {
               console.error('Error fetching balance:', error);
@@ -68,30 +69,25 @@ const App: React.FC = () => {
       // 1. Create the wallet
       const wallet = await walletService.createWallet({ password });
       
-      // 2. Create wallet data object
-      const walletData = {
-        address: wallet.address,
-        privateKey: wallet.privateKey,
-        mnemonic: wallet.mnemonic
-      };
+     
       
       // 3. Store wallet data in chrome.storage
-      storeWalletData(walletData);
+      storeWalletAddress(wallet.address);
       
       // 4. Update UI state but don't set isLoggedIn yet
       setWalletAddress(wallet.address);
       setBalance('0.00');
+      updateLoginState(true);
       
       // 5. Return the wallet details for backup
-      return walletData;
+      return wallet.address;
     } catch (error) {
       console.error('Error creating wallet:', error);
       
       // Clean up any partial state on error
-      setIsLoggedIn(false);
+      updateLoginState(false);
       setWalletAddress('');
       setBalance('0.00');
-      await clearWalletData();
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to create wallet';
       toast.error(errorMessage);
@@ -125,12 +121,12 @@ const App: React.FC = () => {
       };
       
       // Store the wallet data
-      storeWalletData(walletData);
+      storeWalletAddress(wallet.address);
       
       // Update UI state
       setWalletAddress(wallet.address);
       setBalance('0.00');
-      setIsLoggedIn(true);
+      updateLoginState(true);
       
       toast.success('Wallet imported successfully!');
     } catch (error) {
@@ -149,22 +145,21 @@ const App: React.FC = () => {
       
       // Get the stored wallet data
       const result = await new Promise<ChromeStorageData>((resolve) => {
-        chrome.storage.local.get(['walletData'], (data) => {
+        chrome.storage.local.get(['walletAddress'], (data) => {
           resolve(data as ChromeStorageData);
         });
       });
 
-      if (!result.walletData) {
+      if (!result.walletAddress) {
         throw new Error('No wallet found. Please create a new wallet.');
       }
 
-      // In a real app, you would verify the password here
-      // For now, we'll assume the password is correct if we have wallet data
-      setWalletAddress(result.walletData.address);
-      setIsLoggedIn(true);
+     
+      setWalletAddress(result.walletAddress);
+      updateLoginState(true);
       
       try {
-        const balanceData = await walletService.getBalance(result.walletData.address);
+        const balanceData = await walletService.getBalance(result.walletAddress);
         setBalance(balanceData.balance || '0.00');
         toast.success('Successfully logged in!');
       } catch (error) {
@@ -183,8 +178,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await clearWalletData();
-      setIsLoggedIn(false);
+      updateLoginState(false);
       toast.info('Logged out successfully');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -198,18 +192,18 @@ const App: React.FC = () => {
       
       // Get the current wallet data
       const result = await new Promise<ChromeStorageData>((resolve) => {
-        chrome.storage.local.get(['walletData'], (data) => {
+        chrome.storage.local.get(['walletAddress'], (data) => {
           resolve(data as ChromeStorageData);
         });
       });
 
-      if (!result.walletData) {
+      if (!result.walletAddress) {
         throw new Error('No wallet found');
       }
 
       // Prepare the transaction
       const { unsignedTx } = await walletService.prepareTransaction({
-        fromAddress: result.walletData.address,
+        fromAddress: result.walletAddress,
         toAddress,
         amount
       });
@@ -222,7 +216,7 @@ const App: React.FC = () => {
       
       // Sign and broadcast the transaction
       const txResult = await walletService.signAndBroadcast({
-        fromAddress: result.walletData.address,
+        fromAddress: result.walletAddress,
         password,
         unsignedTx
       });
@@ -230,7 +224,7 @@ const App: React.FC = () => {
       toast.success(`Transaction sent! Hash: ${txResult.txHash}`);
       
       // Update balance after successful transaction
-      const balanceData = await walletService.getBalance(result.walletData.address);
+      const balanceData = await walletService.getBalance(result.walletAddress);
       setBalance(balanceData.balance || '0.00');
       
     } catch (error) {
