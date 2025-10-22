@@ -26,28 +26,25 @@ const SunByteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
   const [currentPage, setCurrentPage] = useState('home');
   const [showAssetsSheet, setShowAssetsSheet] = useState(false);
 
-  // Prevent body scroll when bottom sheet is open
+  // Handle body scroll when bottom sheet is open/closed
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    
     if (showAssetsSheet) {
-      // Store current scroll position
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      // Prevent scrolling on body when sheet is open
+      body.style.overflow = 'hidden';
+      html.style.overflow = 'hidden';
     } else {
-      // Restore scroll position
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      // Re-enable scrolling when sheet is closed
+      body.style.overflow = '';
+      html.style.overflow = '';
     }
 
-    // Cleanup on unmount
+    // Cleanup function to re-enable scrolling when component unmounts
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      body.style.overflow = '';
+      html.style.overflow = '';
     };
   }, [showAssetsSheet]);
 
@@ -128,8 +125,8 @@ const SunByteDashboard = ({ walletAddress, balance, onLogout, onSendTransaction 
 
   // Home Page
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
-      <div className="max-w-md mx-auto relative">
+    <div className="flex-1 overflow-y-auto bg-gradient-to-br from-orange-50 via-white to-amber-50">
+      <div className="max-w-md mx-auto relative min-h-full flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 pt-6 pb-20 rounded-b-2xl shadow-lg">
           <div className="flex items-center justify-between mb-6">

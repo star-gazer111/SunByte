@@ -213,7 +213,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       <ToastContainer
         position="top-right"
         autoClose={5000}

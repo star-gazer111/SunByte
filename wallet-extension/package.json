@@ -21,12 +21,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< Updated upstream
-    "framer-motion": "^12.23.24",
-=======
     "@avail-project/nexus-core": "^0.0.1",
     "@types/react-toastify": "^4.1.0",
->>>>>>> Stashed changes
+    "framer-motion": "^12.23.24",
     "lucide-react": "^0.546.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
