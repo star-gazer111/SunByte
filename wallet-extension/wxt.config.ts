@@ -12,6 +12,4 @@ export default defineConfig({
       default_popup: 'popup.html',
     },
   },
-  // Skip Vite configuration for now
-  vite: undefined
 });

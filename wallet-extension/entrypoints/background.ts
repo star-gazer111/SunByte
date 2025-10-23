@@ -1,3 +1,9 @@
+// Import Buffer polyfill first - this must be loaded before any other modules
+import '../src/buffer-polyfill';
+
+// Import wallet provider to make it available globally
+import '../src/api/walletProvider';
+
 import { defineBackground } from '#imports';
 
 export default defineBackground(() => {

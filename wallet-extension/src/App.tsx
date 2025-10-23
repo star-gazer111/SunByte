@@ -1,3 +1,6 @@
+// Import Buffer polyfill first - this must be loaded before any other modules
+import './buffer-polyfill';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginForm from './components/LoginForm';

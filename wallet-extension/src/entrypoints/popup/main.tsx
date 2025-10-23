@@ -1,3 +1,6 @@
+// Import Buffer polyfill first - this must be loaded before any other modules
+import '../../buffer-polyfill';
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../../App';

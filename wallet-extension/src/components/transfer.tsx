@@ -4,7 +4,7 @@ import type {
   TransferResult,
   SimulationResult,
 } from '@avail-project/nexus-core';
-import { sdk, isInitialized } from '../api/nexus';
+import { getSDK, isInitialized } from '../api/nexus';
 
 interface SmartTransferButtonProps {
   className?: string;
@@ -30,7 +30,7 @@ const SmartTransferButton: React.FC<SmartTransferButtonProps> = ({
 
   const handleTransfer = async () => {
     if (!isInitialized()) {
-      alert('Please initialize the SDK first.');
+      alert('Please connect your wallet to Nexus first using the "Connect to Nexus" button above.');
       return;
     }
     if (!recipient) {
@@ -42,7 +42,7 @@ const SmartTransferButton: React.FC<SmartTransferButtonProps> = ({
       setIsLoading(true);
 
       // Simulate the transfer to preview route & costs
-      const sim = await sdk.simulateTransfer({
+      const sim = await getSDK().simulateTransfer({
         token,
         amount,
         chainId,
@@ -60,7 +60,7 @@ const SmartTransferButton: React.FC<SmartTransferButtonProps> = ({
       if (!userConfirmed) return;
 
       // Execute transfer
-      const result = await sdk.transfer({
+      const result = await getSDK().transfer({
         token,
         amount,
         chainId,
@@ -73,7 +73,7 @@ const SmartTransferButton: React.FC<SmartTransferButtonProps> = ({
       alert('Transfer completed successfully!');
     } catch (err) {
       console.error('Transfer failed:', err);
-      alert(`Transfer failed: ${String(err)}`);
+      alert(`Transfer failed: ${String(err)}. The Nexus SDK may not be fully compatible with this environment.`);
     } finally {
       setIsLoading(false);
     }
