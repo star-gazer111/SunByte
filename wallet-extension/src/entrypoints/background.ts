@@ -86,10 +86,6 @@ async function handleWeb3Request(message: any, sender: chrome.runtime.MessageSen
         result = await handleSignTypedData(params);
         break;
 
-      case 'eth_signTypedData_v4':
-        result = await handleSignTypedData(params);
-        break;
-
       case 'wallet_switchEthereumChain':
         result = await handleSwitchChain(params);
         break;
@@ -246,41 +242,11 @@ async function handleSignTransaction(params: any[]) {
 }
 
 async function handlePersonalSign(params: any[]) {
-  const [message, account] = params;
-
-  try {
-    const result = await chrome.storage.local.get(['walletAddress']);
-
-    if (!result.walletAddress) {
-      throw new Error('No wallet found');
-    }
-
-    // For now, we'll need user confirmation through the popup
-    // In a full implementation, this would open a confirmation dialog
-    throw new Error('Message signing requires user confirmation through wallet popup');
-
-  } catch (error) {
-    throw error;
-  }
+  throw new Error('Personal sign not implemented yet');
 }
 
 async function handleSignTypedData(params: any[]) {
-  const [account, typedData] = params;
-
-  try {
-    const result = await chrome.storage.local.get(['walletAddress']);
-
-    if (!result.walletAddress) {
-      throw new Error('No wallet found');
-    }
-
-    // For now, we'll need user confirmation through the popup
-    // In a full implementation, this would open a confirmation dialog
-    throw new Error('Typed data signing requires user confirmation through wallet popup');
-
-  } catch (error) {
-    throw error;
-  }
+  throw new Error('Sign typed data not implemented yet');
 }
 
 async function handleSwitchChain(params: any[]) {
