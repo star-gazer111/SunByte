@@ -112,9 +112,6 @@
       case 'personal_sign':
         return this.sendToExtension('personal_sign', params);
 
-      case 'personal_sign':
-        return this.sendToExtension('personal_sign', params);
-
       case 'eth_signTypedData':
         return this.sendToExtension('eth_signTypedData', params);
 

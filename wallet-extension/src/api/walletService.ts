@@ -26,6 +26,18 @@ interface SignAndBroadcastParams {
   unsignedTx: any;
 }
 
+interface SignMessageParams {
+  fromAddress: string;
+  password: string;
+  message: string;
+}
+
+interface SignTypedDataParams {
+  fromAddress: string;
+  password: string;
+  typedData: any;
+}
+
 export const walletService = {
   async createWallet(params: CreateWalletParams) {
     const response = await fetch(`${API_BASE_URL}/wallet/create`, {
@@ -85,6 +97,30 @@ export const walletService = {
       body: JSON.stringify(params),
     });
     return handleResponse(response);
+  },
+
+  async signMessage(params: SignMessageParams) {
+    const response = await fetch(`${API_BASE_URL}/wallet/sign-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    const result = await handleResponse(response);
+    return result.signature; // Return only the signature string, not the full object
+  },
+
+  async signTypedData(params: SignTypedDataParams) {
+    const response = await fetch(`${API_BASE_URL}/wallet/sign-typed-data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    const result = await handleResponse(response);
+    return result.signature; // Return only the signature string, not the full object
   },
 };
 

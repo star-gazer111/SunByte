@@ -112,8 +112,14 @@
       case 'personal_sign':
         return this.sendToExtension('personal_sign', params);
 
+      case 'personal_sign':
+        return this.sendToExtension('personal_sign', params);
+
       case 'eth_signTypedData':
         return this.sendToExtension('eth_signTypedData', params);
+
+      case 'eth_signTypedData_v4':
+        return this.sendToExtension('eth_signTypedData_v4', params);
 
       case 'wallet_switchEthereumChain':
         return this.sendToExtension('wallet_switchEthereumChain', params);

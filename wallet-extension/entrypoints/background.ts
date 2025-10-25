@@ -1,12 +1,12 @@
 import { defineBackground } from '#imports';
 
 export default defineBackground(() => {
+  // Store pending requests that need user confirmation
+  const pendingRequests = new Map();
+
   // Handle messages from content script and injected script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // Handle the message synchronously
-    handleMessage(message, sender, sendResponse);
-
-    // Return true to keep the message channel open for async responses
+    handleMessage(message, sender, sendResponse, pendingRequests);
     return true;
   });
 
@@ -15,11 +15,15 @@ export default defineBackground(() => {
   });
 });
 
-async function handleMessage(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) {
+async function handleMessage(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void, pendingRequests: Map<string, any>) {
   try {
     switch (message.type) {
       case 'SUNBYTE_REQUEST':
-        await handleWeb3Request(message, sender, sendResponse);
+        await handleWeb3Request(message, sender, sendResponse, pendingRequests);
+        break;
+
+      case 'WEB3_RESPONSE':
+        handleWeb3Response(message, pendingRequests);
         break;
 
       case 'SUNBYTE_CHECK_CONNECTION':
@@ -31,6 +35,21 @@ async function handleMessage(message: any, sender: chrome.runtime.MessageSender,
     }
   } catch (error) {
     sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+function handleWeb3Response(message: any, pendingRequests: Map<string, any>) {
+  const { requestId, success, result, error } = message;
+
+  const pendingRequest = pendingRequests.get(requestId);
+  if (pendingRequest) {
+    pendingRequests.delete(requestId);
+
+    if (success) {
+      pendingRequest.resolve(result);
+    } else {
+      pendingRequest.reject(new Error(error || 'Request failed'));
+    }
   }
 }
 
@@ -51,7 +70,7 @@ async function handleConnectionCheck(sendResponse: (response: any) => void) {
   }
 }
 
-async function handleWeb3Request(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) {
+async function handleWeb3Request(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void, pendingRequests: Map<string, any>) {
   const { method, params = [], requestId } = message;
 
   try {
@@ -71,23 +90,23 @@ async function handleWeb3Request(message: any, sender: chrome.runtime.MessageSen
         break;
 
       case 'eth_sendTransaction':
-        result = await handleSendTransaction(params);
+        result = await handleSendTransaction(params, pendingRequests, requestId);
         break;
 
       case 'eth_signTransaction':
-        result = await handleSignTransaction(params);
+        result = await handleSignTransaction(params, pendingRequests, requestId);
         break;
 
-      case 'personal_sign':
-        result = await handlePersonalSign(params);
+      case 'eth_sign':
+        result = await handlePersonalSign(params, pendingRequests, requestId);
         break;
 
       case 'eth_signTypedData':
-        result = await handleSignTypedData(params);
+        result = await handleSignTypedData(params, pendingRequests, requestId);
         break;
 
       case 'eth_signTypedData_v4':
-        result = await handleSignTypedData(params);
+        result = await handleSignTypedData(params, pendingRequests, requestId);
         break;
 
       case 'wallet_switchEthereumChain':
@@ -204,7 +223,7 @@ async function handleGetBalance(params: any[]) {
   }
 }
 
-async function handleSendTransaction(params: any[]) {
+async function handleSendTransaction(params: any[], pendingRequests: Map<string, any>, requestId: string) {
   const [transaction] = params;
 
   try {
@@ -214,6 +233,7 @@ async function handleSendTransaction(params: any[]) {
       throw new Error('No wallet found');
     }
 
+    // Call backend to prepare transaction
     const response = await fetch('http://localhost:8080/wallet/prepare-transaction', {
       method: 'POST',
       headers: {
@@ -227,25 +247,109 @@ async function handleSendTransaction(params: any[]) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to prepare transaction');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to prepare transaction');
     }
 
     const { unsignedTx } = await response.json();
 
-    // For now, we'll need user confirmation through the popup
-    // In a full implementation, this would open a confirmation dialog
-    throw new Error('Transaction requires user confirmation through wallet popup');
+    // Open the extension popup for user confirmation and password input
+    try {
+      await chrome.action.openPopup();
+
+      // Send the request details to the popup
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'WEB3_REQUEST',
+          requestType: 'transaction',
+          requestId: requestId,
+          data: transaction
+        });
+      }
+    } catch (error) {
+      // Fallback: Create a notification
+      try {
+        await chrome.notifications.create('transaction-sign', {
+          type: 'basic',
+          iconUrl: 'assets/SunByte-B10GhH0q.svg',
+          title: 'SunByte Wallet',
+          message: 'Please click the SunByte Wallet extension icon to confirm the transaction.',
+          priority: 2
+        });
+      } catch (notificationError) {
+        // Silent fallback
+      }
+    }
+
+    // Create a promise that will be resolved by the popup response
+    return new Promise((resolve, reject) => {
+      pendingRequests.set(requestId, { resolve, reject });
+    });
 
   } catch (error) {
     throw error;
   }
 }
 
-async function handleSignTransaction(params: any[]) {
-  throw new Error('Sign transaction not implemented yet');
+async function handleSignTransaction(params: any[], pendingRequests: Map<string, any>, requestId: string) {
+  const [transaction] = params;
+
+  try {
+    const result = await chrome.storage.local.get(['walletAddress']);
+
+    if (!result.walletAddress) {
+      throw new Error('No wallet found');
+    }
+
+    // Call backend to prepare transaction
+    const prepareResponse = await fetch('http://localhost:8080/wallet/prepare-transaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fromAddress: result.walletAddress,
+        toAddress: transaction.to,
+        amount: transaction.value || '0x0',
+      }),
+    });
+
+    if (!prepareResponse.ok) {
+      const errorData = await prepareResponse.json();
+      throw new Error(errorData.error || 'Failed to prepare transaction');
+    }
+
+    const { unsignedTx } = await prepareResponse.json();
+
+    // Open the extension popup for user confirmation and password input
+    try {
+      await chrome.action.openPopup();
+    } catch (error) {
+      // Fallback: Create a notification
+      try {
+        await chrome.notifications.create('transaction-sign', {
+          type: 'basic',
+          iconUrl: 'assets/SunByte-B10GhH0q.svg',
+          title: 'SunByte Wallet',
+          message: 'Please click the SunByte Wallet extension icon to confirm the transaction.',
+          priority: 2
+        });
+      } catch (notificationError) {
+        // Silent fallback
+      }
+    }
+
+    // Create a promise that will be resolved by the popup response
+    return new Promise((resolve, reject) => {
+      pendingRequests.set(requestId, { resolve, reject });
+    });
+
+  } catch (error) {
+    throw error;
+  }
 }
 
-async function handlePersonalSign(params: any[]) {
+async function handlePersonalSign(params: any[], pendingRequests: Map<string, any>, requestId: string) {
   const [message, account] = params;
 
   try {
@@ -255,16 +359,50 @@ async function handlePersonalSign(params: any[]) {
       throw new Error('No wallet found');
     }
 
-    // For now, we'll need user confirmation through the popup
-    // In a full implementation, this would open a confirmation dialog
-    throw new Error('Message signing requires user confirmation through wallet popup');
+    // Validate that the account matches the wallet
+    if (account && account.toLowerCase() !== result.walletAddress.toLowerCase()) {
+      throw new Error('Account mismatch');
+    }
+
+    // Open the extension popup for user confirmation and password input
+    try {
+      await chrome.action.openPopup();
+
+      // Send the request details to the popup
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'WEB3_REQUEST',
+          requestType: 'message',
+          requestId: requestId,
+          data: message
+        });
+      }
+    } catch (error) {
+      // Fallback: Create a notification
+      try {
+        await chrome.notifications.create('message-sign', {
+          type: 'basic',
+          iconUrl: 'assets/SunByte-B10GhH0q.svg',
+          title: 'SunByte Wallet',
+          message: 'Please click the SunByte Wallet extension icon to sign the message.',
+          priority: 2
+        });
+      } catch (notificationError) {
+        // Silent fallback
+      }
+    }
+
+    // Create a promise that will be resolved by the popup response
+    return new Promise((resolve, reject) => {
+      pendingRequests.set(requestId, { resolve, reject });
+    });
 
   } catch (error) {
     throw error;
   }
 }
 
-async function handleSignTypedData(params: any[]) {
+async function handleSignTypedData(params: any[], pendingRequests: Map<string, any>, requestId: string) {
   const [account, typedData] = params;
 
   try {
@@ -274,9 +412,43 @@ async function handleSignTypedData(params: any[]) {
       throw new Error('No wallet found');
     }
 
-    // For now, we'll need user confirmation through the popup
-    // In a full implementation, this would open a confirmation dialog
-    throw new Error('Typed data signing requires user confirmation through wallet popup');
+    // Validate that the account matches the wallet
+    if (account && account.toLowerCase() !== result.walletAddress.toLowerCase()) {
+      throw new Error('Account mismatch');
+    }
+
+    // Open the extension popup for user confirmation and password input
+    try {
+      await chrome.action.openPopup();
+
+      // Send the request details to the popup
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          type: 'WEB3_REQUEST',
+          requestType: 'typedData',
+          requestId: requestId,
+          data: typedData
+        });
+      }
+    } catch (error) {
+      // Fallback: Create a notification
+      try {
+        await chrome.notifications.create('typed-data-sign', {
+          type: 'basic',
+          iconUrl: 'assets/SunByte-B10GhH0q.svg',
+          title: 'SunByte Wallet',
+          message: 'Please click the SunByte Wallet extension icon to sign the typed data.',
+          priority: 2
+        });
+      } catch (notificationError) {
+        // Silent fallback
+      }
+    }
+
+    // Create a promise that will be resolved by the popup response
+    return new Promise((resolve, reject) => {
+      pendingRequests.set(requestId, { resolve, reject });
+    });
 
   } catch (error) {
     throw error;

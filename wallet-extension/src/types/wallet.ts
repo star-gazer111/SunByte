@@ -7,3 +7,10 @@ export interface WalletData {
 export interface ChromeStorageData {
   walletAddress?: string;
 }
+
+export interface PendingRequest {
+  id: string;
+  type: 'transaction' | 'message' | 'typedData';
+  data: any;
+  timestamp: number;
+}
