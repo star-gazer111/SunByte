@@ -1,1 +1,1 @@
-## Parallel Wallet
+## SunByte Protocol
