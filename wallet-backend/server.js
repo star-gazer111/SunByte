@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const port = 3000;
+const port = 8080;
 app.use(express.json());
 
 
@@ -240,6 +240,139 @@ app.post('/wallet/sign-and-broadcast', async (req, res) => {
     }
 });
 
+app.post('/wallet/sign-message', async (req, res) => {
+    console.log('Received request to /wallet/sign-message');
+    try {
+        const { fromAddress, password, message } = req.body;
+        if (!fromAddress || !password || !message) {
+            return res.status(400).json({ error: 'Missing required fields: fromAddress, password, message.' });
+        }
+        const keystorePath = path.join(KEYSTORE_DIR, `${fromAddress}.json`);
+        if (!fs.existsSync(keystorePath)) {
+            return res.status(404).json({ error: `Wallet for address ${fromAddress} not found.` });
+        }
+        const encryptedJson = fs.readFileSync(keystorePath, 'utf8');
+        let senderWallet;
+        try {
+            senderWallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, password);
+        } catch (e) {
+            return res.status(401).json({ error: 'Invalid password.' });
+        }
+
+        // Sign the message
+        const signature = await senderWallet.signMessage(message);
+        console.log(`Message signed for ${fromAddress}`);
+
+        // Ensure signature is in proper format (add 0x prefix if missing)
+        const formattedSignature = signature.startsWith('0x') ? signature : `0x${signature}`;
+
+        res.status(200).json({
+            message: 'Message signed successfully!',
+            signature: formattedSignature
+        });
+    } catch (error) {
+        console.error('Error in sign-message:', error);
+        res.status(500).json({ error: 'An internal server error occurred.', details: error.message });
+    }
+});
+
+app.post('/wallet/sign-typed-data', async (req, res) => {
+    console.log('Received request to /wallet/sign-typed-data');
+    try {
+        const { fromAddress, password, typedData } = req.body;
+        if (!fromAddress || !password || !typedData) {
+            return res.status(400).json({ error: 'Missing required fields: fromAddress, password, typedData.' });
+        }
+
+        // Parse typedData if it's a string (from Web3 requests)
+        let parsedTypedData = typedData;
+        if (typeof typedData === 'string') {
+            try {
+                parsedTypedData = JSON.parse(typedData);
+            } catch (e) {
+                return res.status(400).json({ error: 'Invalid typed data format.' });
+            }
+        }
+
+        // Validate typed data structure
+        if (!parsedTypedData.domain || !parsedTypedData.types) {
+            return res.status(400).json({ error: 'Typed data must include domain and types.' });
+        }
+
+        // Handle both EIP-712 structures (Web3 uses 'message', ethers.js uses 'value')
+        const typedMessage = parsedTypedData.message || parsedTypedData.value;
+        if (!typedMessage) {
+            return res.status(400).json({ error: 'Typed data must include message or value.' });
+        }
+
+        // Filter out EIP712Domain from types (ethers.js handles this automatically)
+        const { EIP712Domain, ...filteredTypes } = parsedTypedData.types;
+        const signingTypes = Object.keys(filteredTypes).length > 0 ? filteredTypes : parsedTypedData.types;
+        const keystorePath = path.join(KEYSTORE_DIR, `${fromAddress}.json`);
+        if (!fs.existsSync(keystorePath)) {
+            return res.status(404).json({ error: `Wallet for address ${fromAddress} not found.` });
+        }
+        const encryptedJson = fs.readFileSync(keystorePath, 'utf8');
+        let senderWallet;
+        try {
+            senderWallet = await ethers.Wallet.fromEncryptedJson(encryptedJson, password);
+        } catch (e) {
+            return res.status(401).json({ error: 'Invalid password.' });
+        }
+
+        // Sign the typed data
+        const signature = await senderWallet.signTypedData(
+            parsedTypedData.domain,
+            signingTypes,
+            typedMessage
+        );
+        console.log(`Typed data signed for ${fromAddress}`);
+
+        // Ensure signature is in proper format (add 0x prefix if missing)
+        const formattedSignature = signature.startsWith('0x') ? signature : `0x${signature}`;
+
+        // Optional: Execute contract interaction if contract details are provided
+        let contractResult = null;
+        if (parsedTypedData.contractInteraction) {
+            try {
+                const { contractAddress, method, params, value = '0' } = parsedTypedData.contractInteraction;
+                const provider = getProvider();
+
+                // Create contract interface
+                const contract = new ethers.Contract(contractAddress, [method], senderWallet);
+
+                console.log(`Executing contract interaction: ${method.name} at ${contractAddress}`);
+
+                // Execute the contract method
+                const txResponse = await contract[method.name](...params, {
+                    value: ethers.parseEther(value.toString()),
+                    gasLimit: 200000
+                });
+
+                console.log(`Contract transaction sent: ${txResponse.hash}`);
+                const receipt = await txResponse.wait();
+                contractResult = {
+                    txHash: receipt.hash,
+                    blockNumber: receipt.blockNumber,
+                    gasUsed: receipt.gasUsed.toString()
+                };
+                console.log('Contract interaction confirmed');
+
+            } catch (contractError) {
+                console.warn('Error executing contract interaction:', contractError.message);
+                // Don't fail the whole request if contract interaction fails
+            }
+        }
+
+        res.status(200).json({
+            message: 'Typed data signed successfully!',
+            signature: formattedSignature
+        });
+    } catch (error) {
+        console.error('Error in sign-typed-data:', error);
+        res.status(500).json({ error: 'An internal server error occurred.', details: error.message });
+    }
+});
 
 app.listen(port, () => {
   console.log(`wallet-api server is running on http://localhost:${port}`);

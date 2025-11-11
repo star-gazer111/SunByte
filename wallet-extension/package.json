@@ -1,0 +1,52 @@
+{
+  "name": "wallet-extension",
+  "version": "1.0.0",
+  "description": "A modern Web3 wallet extension",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt -b chrome",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "postinstall": "wxt prepare"
+  },
+  "keywords": [
+    "web3",
+    "wallet",
+    "extension"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@avail-project/nexus-core": "^0.0.1",
+    "@tanstack/react-query": "^5.90.5",
+    "@types/react-toastify": "^4.1.0",
+    "@wagmi/connectors": "^6.1.0",
+    "@wagmi/core": "^2.22.1",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.546.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-toastify": "^11.0.5",
+    "viem": "^2.38.4",
+    "wagmi": "^2.18.2"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.24",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/webextension-polyfill": "^0.12.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9",
+    "wxt": "^0.20.11"
+  },
+  "packageManager": "yarn@4.10.3"
+}
